@@ -3,26 +3,23 @@
 # Simple script to download DOS games and stay up to date with the 0mhz project
 
 
+
 # Where should the games be installed? Change accordingly if you want games to be stored on usb
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 
 ###### The rest of the script should probably not be changed 
+
 base_dir="${games_loc}/games/AO486"
 
-# Path for mgl files. Always on fat drive
+# Path for mgl files. Always on SD card drive
 dos_mgl="/media/fat/_DOS Games"
 
+# URL of the 0mhz archive.org XML file
+xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
 
-
-# Set your GitHub repository details and the folder path
-USER_OR_ORG="0mhz-net"
-REPO="0mhz-collection"
-FOLDER_PATH="mgls"
-BRANCH="main" 
-
-# GitHub API URL for listing contents of the folder
-API_URL="https://api.github.com/repos/$USER_OR_ORG/$REPO/contents/$FOLDER_PATH?ref=$BRANCH"
+# 0mhz GitHub API URL for listing contents of the mgls folder
+api_url="https://api.github.com/repos/0mhz-net/0mhz-collection/contents/mgls?ref=main"
 
 # Ensure the local directory exists
 mkdir -p "$dos_mgl"
@@ -40,7 +37,7 @@ fi
 cd "$dos_mgl"
 
 # Fetch the list of files in the remote folder via GitHub's API
-curl --insecure -s "$API_URL" | jq -r '.[] | select(.type=="file") | .download_url' | while read file_url; do
+curl --insecure -s "$api_url" | jq -r '.[] | select(.type=="file") | .download_url' | while read file_url; do
     # URL decode the file name for local use/display.
     # Note: This requires Perl for URL decoding.
     file_name=$(basename "$file_url" | perl -pe 's/%([0-9A-F]{2})/chr(hex($1))/eg')
@@ -111,9 +108,6 @@ else
     done
 fi
 
-
-# URL of the online XML file
-xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
 
 # Fetch the XML file and extract all file names
 file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' - | sed -e 's/name="\([^"]*\)"/\1\n/g')
