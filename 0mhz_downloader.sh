@@ -1,4 +1,19 @@
-  #!/bin/bash
+#!/bin/bash
+
+# Simple script to download DOS games and stay up to date with the 0mhz project
+
+
+# Where should the games be installed? Change accordingly if you want games to be stored on usb
+games_loc="/media/usb0"
+
+
+###### The rest of the script should probably not be changed 
+base_dir="${games_loc}/games/AO486"
+
+# Path for mgl files
+dos_mgl="/media/fat/_DOS Games"
+
+
 
 # Set your GitHub repository details and the folder path
 USER_OR_ORG="0mhz-net"
@@ -9,14 +24,20 @@ BRANCH="main"
 # GitHub API URL for listing contents of the folder
 API_URL="https://api.github.com/repos/$USER_OR_ORG/$REPO/contents/$FOLDER_PATH?ref=$BRANCH"
 
-# Directory to save the downloaded files
-LOCAL_DIR="/media/fat/_DOS Games"
-
 # Ensure the local directory exists
-mkdir -p "$LOCAL_DIR"
+mkdir -p "$dos_mgl"
+mkdir -p "$base_dir"
+
+# Check available space on the device where base_dir is located
+available_space_gb=$(df -BG "$base_dir" | awk 'NR==2 {print substr($4, 1, length($4)-1)}')
+
+if [ "$available_space_gb" -lt 30 ]; then
+    echo "Less than 30GB space available in $base_dir. Aborting."
+    exit 1
+fi
 
 # Navigate to the local directory
-cd "$LOCAL_DIR"
+cd "$dos_mgl"
 
 # Fetch the list of files in the remote folder via GitHub's API
 curl --insecure -s "$API_URL" | jq -r '.[] | select(.type=="file") | .download_url' | while read file_url; do
@@ -37,17 +58,13 @@ done
 echo "Synchronization complete."
 echo "Checking if files exist"
 
-mgl_dir="$LOCAL_DIR"
-
-# The base directory to check the file paths against
-base_dir="/media/fat/games/AO486"
+mgl_dir="$dos_mgl"
 
 # Initialize an array to hold the names of .mgl files with missing paths
 mgl_with_missing_paths=()
 
 # Loop through all .mgl files in the mgl_dir
 for mgl_file in "$mgl_dir"/*.mgl; do
-    echo "Processing $mgl_file..."
 
     # Extract paths using grep and sed. This is less reliable than xmllint and assumes well-formed input.
     paths=$(grep -o 'path="[^"]*"' "$mgl_file" | sed 's/path="\(.*\)"/\1/')
@@ -87,7 +104,8 @@ done
 if [ ${#mgl_with_missing_paths[@]} -eq 0 ]; then
     echo "No .mgl files with missing paths were found."
 else
-    echo "List of .mgl files with missing paths:"
+	echo ""
+    echo "List of .mgl files with missing files:"
     for mgl_file in "${mgl_with_missing_paths[@]}"; do
         echo "$mgl_file"
     done
@@ -106,9 +124,18 @@ for mgl_file in "${mgl_with_missing_paths[@]}"; do
     zip_name="${mgl_file%.mgl}.zip"
 
     # Check if the .zip version exists in the file names
-    if echo "$file_names" | grep -Fxq "$zip_name"; then
-        echo "Matching .zip found for $mgl_file: $zip_name"
+    if echo "$file_names" | fgrep -qi "$zip_name"; then
+		echo ""
+        echo "Downloading missing zip: $zip_name"
         # Print the download link for the .zip file
-        echo "Download link: https://archive.org/download/0mhz-dos/$zip_name"
+        dl_zip="$(echo https://archive.org/download/0mhz-dos/"$zip_name" | sed 's/ /%20/g')"
+		mkdir -p ${base_dir}/tmpdownload
+		curl --insecure -L -# -o "${base_dir}/tmpdownload/$zip_name" "$dl_zip"		
+		if unzip -o "$base_dir/tmpdownload/${zip_name}" -d "$games_loc"; then
+			echo "Unzipped $zip_name successfully."
+			rm "$base_dir/tmpdownload/${zip_name}"
+		else
+			echo "Error unzipping $zip_file."
+		fi		
     fi
 done
