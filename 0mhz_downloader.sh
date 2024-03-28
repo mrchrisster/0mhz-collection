@@ -4,13 +4,13 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 
 ###### The rest of the script should probably not be changed 
 base_dir="${games_loc}/games/AO486"
 
-# Path for mgl files
+# Path for mgl files. Always on fat drive
 dos_mgl="/media/fat/_DOS Games"
 
 
