@@ -1,7 +1,20 @@
 #!/bin/bash
 
 # Simple script to download DOS games and stay up to date with the 0mhz project
+# Check Github for new mgl files and then checks archive for those zip files.
+# Please visit https://0mhz.net/ for more info
 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# Copyright 2024 mrchrisster
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb
