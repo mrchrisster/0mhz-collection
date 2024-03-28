@@ -38,14 +38,11 @@ cd "$dos_mgl"
 
 # Fetch the list of files in the remote folder via GitHub's API
 curl --insecure -s "$api_url" | jq -r '.[] | select(.type=="file") | .download_url' | while read file_url; do
-    # URL decode the file name for local use/display.
-    # Note: This requires Perl for URL decoding.
     file_name=$(basename "$file_url" | perl -pe 's/%([0-9A-F]{2})/chr(hex($1))/eg')
 
     # Check if the file already exists locally
     if [ ! -f "$file_name" ]; then
         echo "Downloading $file_name..."
-        # Download the file using the encoded URL
         curl --insecure -s -o "$file_name" "$file_url"
     else
         echo "$file_name already exists, skipping."
@@ -57,13 +54,12 @@ echo "Checking if files exist"
 
 mgl_dir="$dos_mgl"
 
-# Initialize an array to hold the names of .mgl files with missing paths
+# Initialize an array to hold the names of .mgl files with missing paths/files
 mgl_with_missing_paths=()
 
 # Loop through all .mgl files in the mgl_dir
 for mgl_file in "$mgl_dir"/*.mgl; do
 
-    # Extract paths using grep and sed. This is less reliable than xmllint and assumes well-formed input.
     paths=$(grep -o 'path="[^"]*"' "$mgl_file" | sed 's/path="\(.*\)"/\1/')
 
     if [ -z "$paths" ]; then
@@ -77,12 +73,10 @@ for mgl_file in "$mgl_dir"/*.mgl; do
         # Trim leading and trailing spaces from the path
         trimmed_path=$(echo "$path" | sed 's/^ *//;s/ *$//')
 
-        # Construct the full path
         full_path="${base_dir}/${trimmed_path}"
 
         echo "Checking existence of: $full_path"
 
-        # Check if the file exists
         if [ ! -f "$full_path" ]; then
             echo "Missing: $trimmed_path"
             has_missing_paths=true
@@ -91,7 +85,6 @@ for mgl_file in "$mgl_dir"/*.mgl; do
         fi
     done <<< "$paths"
 
-    # If the file has missing paths, add its name to the array
     if [ "$has_missing_paths" = true ]; then
         mgl_with_missing_paths+=("$(basename "$mgl_file")")
     fi
