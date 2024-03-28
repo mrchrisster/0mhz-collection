@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Simple script to download DOS games and stay up to date with the 0mhz project
-# Check Github for new mgl files and then checks archive for those zip files.
+# Checks Github for new mgl files and then checks archive to download those zip files.
 # Please visit https://0mhz.net/ for more info
 
 # This program is free software: you can redistribute it and/or modify
