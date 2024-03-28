@@ -5,7 +5,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 
 ###### The rest of the script should probably not be changed 
