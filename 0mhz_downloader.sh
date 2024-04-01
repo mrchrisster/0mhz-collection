@@ -23,10 +23,10 @@ games_loc="/media/fat"
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
-#Cleanup files in /media directory. If a file 
+# Cleanup files in /media directory. If a file 
 delete_unmatched_files=false
 
-# Always download fresh copies of mgl's to assure we stay up to date
+# Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
 
 
@@ -105,13 +105,13 @@ for mgl_file in "$mgl_dir"/*.mgl; do
         full_path="${base_dir}/${trimmed_path}"
         referenced_paths+=("$full_path")
 		
-        echo "Checking: $full_path"
+        echo -n "Checking: $trimmed_path ..."
 
         if [ ! -f "$full_path" ]; then
-            echo "Missing: $trimmed_path"
+            echo " Missing"
             has_missing_paths=true
         else
-            echo "Found: $trimmed_path"
+            echo " Found"
         fi
     done <<< "$paths"
 
