@@ -23,7 +23,7 @@ games_loc="/media/fat"
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
-# Cleanup files in /media directory. If a file 
+# CAUTION! Cleanup files in ao486/media directory. If a file is not mentioned in the mgl, it will be deleted.
 delete_unmatched_files=false
 
 # Always download fresh copies of mgls to assure we stay up to date
