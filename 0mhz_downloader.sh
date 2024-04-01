@@ -167,7 +167,6 @@ if [ "$delete_unmatched_files" = true ]; then
 		# Check if the relative path is in the referenced_paths array
 		if [[ ! " ${referenced_paths[@]} " =~ " ${media_file} " ]]; then
 			echo "Deleting file: $media_file"
-			# Prompt for deletion or directly delete as per your requirement
 			rm "$media_file"
 		fi
 	done
