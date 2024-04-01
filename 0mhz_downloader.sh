@@ -148,7 +148,7 @@ for mgl_file in "${mgl_with_missing_paths[@]}"; do
         dl_zip="$(echo https://archive.org/download/0mhz-dos/"$zip_name" | sed 's/ /%20/g')"
 		mkdir -p ${base_dir}/.0mhz_downloader
 		curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$zip_name" "$dl_zip"		
-		if unzip -o "$base_dir/.0mhz_downloader/${zip_name}" "media/*" -d "$games_loc"; then
+		if unzip -o "$base_dir/.0mhz_downloader/${zip_name}" "games/ao486/media/*" -d "$games_loc"; then
 			echo "Unzipped $zip_name successfully."
 			rm "$base_dir/.0mhz_downloader/${zip_name}"
 		else
