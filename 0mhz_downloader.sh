@@ -18,7 +18,7 @@
 
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
-# Where should the games be installed? Change accordingly if you want games to be stored on usb
+# Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
 games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
@@ -32,10 +32,6 @@ always_dl_mgl=false
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true  
-
-# CAUTION! Cleanup files in ao486/media directory. If a file is not mentioned in the mgl, it will be deleted.
-delete_unmatched_files=false
-
 
 ###### The rest of the script should probably not be changed 
 
