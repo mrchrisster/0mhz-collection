@@ -182,6 +182,7 @@ done
 
 
 if [ "$unresolved_mgls" = true ]; then
+    echo ""
 	echo "Verifying .mgl files post-download..."
 
 	for mgl_basename in "${mgl_with_missing_paths[@]}"; do
