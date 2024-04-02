@@ -24,11 +24,11 @@ games_loc="/media/usb0"
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
-# Prefer mt32 files
+# Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
 prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
-always_dl_mgl=false
+always_dl_mgl=true
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true  
@@ -40,17 +40,7 @@ base_dir="${games_loc}/games/AO486"
 # URL of the 0mhz archive.org XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
 
-# 0mhz GitHub API URL for listing contents of the mgls folder
-api_url="https://api.github.com/repos/0mhz-net/0mhz-collection/contents/"
-
 mgl_dir="$dos_mgl"
-
-# Adjust API URL based on mt-32
-if [ "$prefer_mt32" = true ]; then
-    api_url="${api_url}/mgls/_MT-32?ref=main"
-else
-    api_url="${api_url}mgls?ref=main"
-fi
 
 # Ensure the local directory exists
 mkdir -p "$dos_mgl"
@@ -71,23 +61,59 @@ if [ "$available_space_gb" -lt 30 ]; then
     exit 1
 fi
 
-# Navigate to the local directory
-cd "$dos_mgl"
+# We use zip. Temporary directory for the repository
+temp_dir="/tmp/0mhz-collection"
+repo_zip_url="https://github.com/0mhz-net/0mhz-collection/archive/refs/heads/main.zip"
+repo_zip_path="/tmp/0mhz-collection.zip"
+mgls_dir_name="0mhz-collection-main/mgls"
+mgl_gh_dir="$temp_dir/$mgls_dir_name"
 
-# Fetch the list of files in the remote folder via GitHub's API
-curl --insecure -s "$api_url" | jq -r '.[] | select(.type=="file") | .download_url' | while read file_url; do
-    file_name=$(basename "$file_url" | perl -pe 's/%([0-9A-F]{2})/chr(hex($1))/eg')
+# Download and unzip the repository
+download_and_unzip_repo() {
+    echo "Downloading repository..."
+    curl -s --insecure -L -o "$repo_zip_path" "$repo_zip_url"
+    echo "Unzipping repository to $temp_dir..."
+    mkdir -p "$temp_dir"
+    unzip -qq -o "$repo_zip_path" -d "$temp_dir"
+}
 
-    # Check if the file already exists locally
-    if [ "$always_dl_mgl" = true ] || [ ! -f "$file_name" ]; then
-        echo "Downloading $file_name..."
-        curl --insecure -s -o "$file_name" "$file_url"
-    else
-        echo "$file_name already exists, skipping."
-    fi
-done
+# Function to prefer MT-32 files
+prefer_mt32_files() {
+    echo ""
+    echo "Preferring MT-32 files"
+	echo ""
+
+    # Find all standard .mgl files
+    find "$mgl_gh_dir"  -maxdepth 1 -type f -name "*.mgl" | while read standard_file; do
+        # Determine MT-32 counterpart
+        mt32_file="${standard_file%.*} (MT-32).mgl"
+        mt32_file="${mt32_file/$mgl_gh_dir/$mgl_gh_dir/_MT-32}"
+
+        if [[ -f "$mt32_file" ]]; then
+            # If MT-32 counterpart exists, prefer it by deleting the standard file
+            echo "Processing $(basename "$mt32_file")"
+            rm -f "$standard_file"
+        fi
+    done
+}
+
+# Execute functions
+download_and_unzip_repo
+find "$mgl_gh_dir" -maxdepth 1 -type f -name '*.mgl' -exec cp -n {} "$dos_mgl" \;
+
+
+if [ "$prefer_mt32" = true ]; then
+	prefer_mt32_files
+	find "$mgl_gh_dir/_MT-32" -maxdepth 1 -type f -name '*.mgl' -exec cp -n {} "$dos_mgl" \;
+fi
+
+# Cleanup
+echo "Cleanup downloaded ZIP..."
+rm -f "$repo_zip_path"
+rm -rf "$temp_dir"
 
 echo "Synchronization complete."
+echo ""
 echo "Checking if files exist"
 
 # Initialize an array to hold all paths mentioned in mgl
