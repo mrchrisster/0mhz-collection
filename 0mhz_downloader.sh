@@ -19,7 +19,7 @@
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -155,13 +155,13 @@ for mgl_file in "${mgl_with_missing_paths[@]}"; do
 
     # Initialize variable to hold the selected file name
     selected_zip=""
-
+    echo ""
     # Check if preference for MT-32 is enabled and the MT-32 version exists
     if $prefer_mt32 && echo "$file_names" | fgrep -qi "$mt32_name"; then
-        echo "MT-32 version found: $mt32_name"
+        echo "Downloading MT-32 version: $mt32_name"
         selected_zip="$mt32_name"
     elif echo "$file_names" | fgrep -qi "$standard_name"; then
-        echo "Downloading standard version: $standard_name"
+        echo "Downloading: $standard_name"
         selected_zip="$standard_name"
     fi
 
