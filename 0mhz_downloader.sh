@@ -16,6 +16,7 @@
 
 # Copyright 2024 mrchrisster
 
+# NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb
 games_loc="/media/fat"
@@ -23,11 +24,17 @@ games_loc="/media/fat"
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
-# CAUTION! Cleanup files in ao486/media directory. If a file is not mentioned in the mgl, it will be deleted.
-delete_unmatched_files=false
+# Prefer mt32 files
+prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
+
+# Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
+unresolved_mgls=true  
+
+# CAUTION! Cleanup files in ao486/media directory. If a file is not mentioned in the mgl, it will be deleted.
+delete_unmatched_files=false
 
 
 ###### The rest of the script should probably not be changed 
@@ -38,11 +45,21 @@ base_dir="${games_loc}/games/AO486"
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
 
 # 0mhz GitHub API URL for listing contents of the mgls folder
-api_url="https://api.github.com/repos/0mhz-net/0mhz-collection/contents/mgls?ref=main"
+api_url="https://api.github.com/repos/0mhz-net/0mhz-collection/contents/"
+
+mgl_dir="$dos_mgl"
+
+# Adjust API URL based on mt-32
+if [ "$prefer_mt32" = true ]; then
+    api_url="${api_url}/mgls/_MT-32?ref=main"
+else
+    api_url="${api_url}mgls?ref=main"
+fi
 
 # Ensure the local directory exists
 mkdir -p "$dos_mgl"
-mkdir -p "$base_dir"
+mkdir -p /media/fat/games/AO486/media
+mkdir -p "$base_dir"/media
 
 # Empty out the mgl_dir if always_dl_mgl is true
 if [ "$always_dl_mgl" = true ]; then
@@ -76,8 +93,6 @@ done
 
 echo "Synchronization complete."
 echo "Checking if files exist"
-
-mgl_dir="$dos_mgl"
 
 # Initialize an array to hold all paths mentioned in mgl
 referenced_paths=()
@@ -137,25 +152,66 @@ file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' -
 
 # Iterate through the mgl_with_missing_paths array
 for mgl_file in "${mgl_with_missing_paths[@]}"; do
-    # Replace the .mgl extension with .zip for each file
-    zip_name="${mgl_file%.mgl}.zip"
+    base_name="${mgl_file%.mgl}"
+    mt32_suffix=" (MT-32)"
+	mt32_name="${base_name}${mt32_suffix}.zip"
+    standard_name="${base_name}.zip"
 
-    # Check if the .zip version exists in the file names
-    if echo "$file_names" | fgrep -qi "$zip_name"; then
-		echo ""
-        echo "Downloading missing zip: $zip_name"
-        # Print the download link for the .zip file
-        dl_zip="$(echo https://archive.org/download/0mhz-dos/"$zip_name" | sed 's/ /%20/g')"
-		mkdir -p ${base_dir}/.0mhz_downloader
-		curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$zip_name" "$dl_zip"		
-		if unzip -o "$base_dir/.0mhz_downloader/${zip_name}" "games/ao486/media/*" -d "$games_loc"; then
-			echo "Unzipped $zip_name successfully."
-			rm "$base_dir/.0mhz_downloader/${zip_name}"
-		else
-			echo "Error unzipping $zip_file."
-		fi		
+    # Initialize variable to hold the selected file name
+    selected_zip=""
+
+    # Check if preference for MT-32 is enabled and the MT-32 version exists
+    if $prefer_mt32 && echo "$file_names" | fgrep -qi "$mt32_name"; then
+        echo "MT-32 version found: $mt32_name"
+        selected_zip="$mt32_name"
+    elif echo "$file_names" | fgrep -qi "$standard_name"; then
+        echo "Downloading standard version: $standard_name"
+        selected_zip="$standard_name"
+    fi
+
+    # Proceed with download if a file has been selected
+    if [ ! -z "$selected_zip" ]; then
+        echo "Downloading selected zip: $selected_zip"
+        dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
+        mkdir -p "${base_dir}/.0mhz_downloader"
+        curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
+        if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
+            echo "Unzipped $selected_zip successfully."
+            rm "$base_dir/.0mhz_downloader/${selected_zip}"
+        else
+            echo "Error unzipping $selected_zip."
+        fi
     fi
 done
+
+
+if [ "$unresolved_mgls" = true ]; then
+	echo "Verifying .mgl files post-download..."
+
+	for mgl_basename in "${mgl_with_missing_paths[@]}"; do
+		still_missing_any=false
+		mgl_file="$dos_mgl/$mgl_basename"
+		while IFS= read -r line; do
+			path=$(echo "$line" | grep -o 'path="[^"]*"' | sed 's/path="\(.*\)"/\1/')
+			if [[ ! -z "$path" ]]; then
+				full_path="$base_dir/${path}"
+				if [ ! -f "$full_path" ]; then
+					still_missing_any=true
+					break
+				fi
+			fi
+		done < "$mgl_file"
+		
+		if [ "$still_missing_any" = true ]; then
+			echo "Incomplete .mgl detected, deleting: $mgl_basename"
+			rm "$mgl_file"
+		else
+			echo "$mgl_basename is complete."
+		fi
+	done
+fi
+
+
 
 if [ "$delete_unmatched_files" = true ]; then
     echo "File cleanup is enabled."
@@ -170,6 +226,4 @@ if [ "$delete_unmatched_files" = true ]; then
 			rm "$media_file"
 		fi
 	done
-else
-    echo "Skipping deletion of unreferenced files."
 fi
