@@ -19,7 +19,7 @@
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -170,7 +170,7 @@ fi
 
 
 # Fetch the XML file and extract all file names
-file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' - | sed -e 's/name="\([^"]*\)"/\1\n/g')
+file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' - | sed -e 's/name="\([^"]*\)"/\1\n/g' | sed 's/&amp;/\&/g')
 
 # Iterate through the mgl_with_missing_paths array
 for mgl_file in "${mgl_with_missing_paths[@]}"; do
