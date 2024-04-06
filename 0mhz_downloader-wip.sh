@@ -19,7 +19,7 @@
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -28,7 +28,7 @@ dos_mgl="/media/fat/_DOS Games"
 prefer_mt32=false
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
-unresolved_mgls=true  
+unresolved_mgls=false 
 
 ###### The rest of the script should probably not be changed 
 
@@ -99,62 +99,88 @@ prefer_mt32_files() {
     done
 }
 
-download_and_unzip_repo
 if [ "$prefer_mt32" = true ]; then
 	prefer_mt32_files
 fi
 
-echo "Synchronization complete."
+download_and_unzip_repo
+
+echo "Download of Github MGL Archive complete."
 echo ""
 
 
 #### MGL COMPARE REMOTE TO LOCAL
 
-calculate_md5() {
-    md5sum "$1" | awk '{print $1}'
+archive_zip_view() {
+	file_name=$1
+	new_url="${xml_url/0mhz-dos_files.xml/$file_name}" # Replace the XML file name with the ZIP file name
+	new_url=$(echo "$new_url" | sed 's/ /%20/g'| sed 's/^ *//g; s|/$||; s|$|/|') # Encode spaces as %20 for URL compatibility and trailing slash to view zip
+	#content_mgl=$(curl -s --insecure -L "$new_url" | grep ".mgl" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p')
+	curl -s --insecure -L "$new_url" | grep "games/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p'
 }
 
-mgl_md5_compare() {
-	shopt -s nullglob
-	dos_mgl_files=("$dos_mgl"/*.mgl)
-	if [ ${#dos_mgl_files[@]} -eq 0 ]; then
-		echo "No .mgl files found locally. Skipping md5 check."
-		cp "$mgl_gh_dir"/*.mgl "$dos_mgl"
-		return
-	else
-		echo "Calculating hashes for existing .mgl files"
-		declare -A existing_mgls_hashes
-		for existing_file in "${dos_mgl_files[@]}"; do
-			hash=$(calculate_md5 "$existing_file")
-			existing_mgls_hashes["$(basename "$existing_file")"]="$hash"
-		done
-	fi
 
-	gh_mgl_files=("$mgl_gh_dir"/*.mgl)
-	if [ ${#gh_mgl_files[@]} -eq 0 ]; then
-		echo "No .mgl files found in GitHub directory. Skipping update check."
-	else
-		echo "Calculating hashes for new .mgl files and compare"
-		declare -A new_mgls_hashes
-		for gh_mgl_file in "${gh_mgl_files[@]}"; do
-			gh_mgl_basename=$(basename "$gh_mgl_file")
-			hash=$(calculate_md5 "$gh_mgl_file")
-			new_mgls_hashes["$gh_mgl_basename"]="$hash"
-			
-			# Compare hashes
-			if [[ ${existing_mgls_hashes["$gh_mgl_basename"]} != "$hash" ]]; then
-				# This means either the file is new or has been updated
-				echo "New or updated .mgl file detected: $gh_mgl_basename"
-				
-				# Decide to copy over or replace the existing .mgl file
-				cp -f "$gh_mgl_file" "$dos_mgl/"
-			fi
-		done
-	fi
-	shopt -u nullglob
+shopt -s nullglob
+
+mgl_updater() {
+    dos_mgl_files=("$dos_mgl"/*.mgl)
+    if [ ${#dos_mgl_files[@]} -eq 0 ]; then
+        echo "No .mgl files found locally. Continuing..."
+        cp "$mgl_gh_dir"/*.mgl "$dos_mgl"
+        return
+    else
+        echo "Checking for differences between local and remote .mgl files"
+    fi
+
+    gh_mgl_files=("$mgl_gh_dir"/*.mgl)
+    if [ ${#gh_mgl_files[@]} -eq 0 ]; then
+        echo "No .mgl files found in GitHub directory. Skipping update check."
+    else
+        echo "Comparing local and remote .mgl files"
+        for gh_mgl_file in "${gh_mgl_files[@]}"; do
+            gh_mgl_basename=$(basename "$gh_mgl_file")
+            local_file_path="$dos_mgl/$gh_mgl_basename"
+            
+            # Check if the file exists locally
+            if [[ -f "$local_file_path" ]]; then
+                # Use cmp to check if the files differ
+                if ! cmp -s "$gh_mgl_file" "$local_file_path"; then
+                    echo "Difference detected in $gh_mgl_basename"
+
+                    # Generate the paths from the zip archive and modify them
+                    archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip" | sed 's|games/ao486/||')
+                    
+                    # Verify the modified paths against the .mgl file content
+                    all_paths_exist=true
+                    while read -r line; do
+                        if ! grep -qF "$line" "$gh_mgl_file"; then
+                            all_paths_exist=false
+                            break
+                        fi
+                    done <<< "$archive_zip_view_output"
+                    
+                    if [ "$all_paths_exist" = true ]; then
+                        echo "Archive content matches .mgl file. Updating local file with remote file."
+                        cp -f "$gh_mgl_file" "$dos_mgl/"
+                    else
+                        echo "Remote zip file not up to date with mgl, skipping..."
+                        continue
+                    fi
+                fi
+            else
+                echo "New .mgl file detected: $gh_mgl_basename"
+                # Since it's a new file, just copy it over
+                cp "$gh_mgl_file" "$dos_mgl/"
+            fi
+        done
+    fi
 }
 
-mgl_md5_compare
+
+
+
+shopt -u nullglob
+mgl_updater
 
 
 #### MGL FILES CHECK
