@@ -27,6 +27,7 @@
 # If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd or transfer your save to the new version
 
 
+####  USER OPTIONS
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
 games_loc="/media/fat"
@@ -49,7 +50,7 @@ unresolved_mgls=true
 
 
 
-###### The rest of the script should probably not be changed 
+####  CODE STARTS HERE
 
 base_dir="${games_loc}/games/AO486"
 
