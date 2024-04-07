@@ -32,7 +32,7 @@ dos_mgl="/media/fat/_DOS Games"
 prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
-always_dl_mgl=true
+always_dl_mgl=false
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true
