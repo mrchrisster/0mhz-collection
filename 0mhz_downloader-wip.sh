@@ -20,6 +20,7 @@
 
 
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
+
 # NOTE REGARDING SAVE GAMES: 
 # Save games are stored in the vhd. No save games will be deleted by this program
 # If a game gets updated you have a save for, the new vhd will have a different name than the old version (e.g. "Game Name.r2.vhd")
@@ -34,7 +35,7 @@ games_loc="/media/fat"
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=false
+prefer_mt32=true
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
@@ -176,12 +177,10 @@ mgl_updater() {
                     # Generate the paths from the zip archive and modify them
                     archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip" | sed 's|games/ao486/||')
                     
-                    # Verify the modified paths against the .mgl file content
+                    # Check if all files in Archive.org's hosted zip are present in the mgl description
                     all_paths_exist=true
                     while read -r line; do
-                    	echo "$line"
-                    	echo "$gh_mgl_file"
-                        if ! grep -qF "$line" "$gh_mgl_file"; then
+                        if ! fgrep -q "$line" "$gh_mgl_file"; then
                             all_paths_exist=false
                             break
                         fi
