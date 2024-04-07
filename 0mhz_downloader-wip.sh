@@ -27,7 +27,6 @@
 # If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd or transfer your save to the new version
 
 
-####  USER OPTIONS
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
 games_loc="/media/fat"
@@ -50,12 +49,19 @@ unresolved_mgls=true
 
 
 
-####  CODE STARTS HERE
+###### The rest of the script should probably not be changed 
 
 base_dir="${games_loc}/games/AO486"
 
-# URL of the 0mhz archive.org XML file
+# archive.org URL of the 0mhz XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
+
+# github 0mhz url
+temp_dir="/tmp/0mhz-collection"
+repo_zip_url="https://github.com/0mhz-net/0mhz-collection/archive/refs/heads/main.zip"
+repo_zip_path="/tmp/0mhz-collection.zip"
+mgls_dir_name="0mhz-collection-main/mgls"
+gh_mgl_dir="$temp_dir/$mgls_dir_name"
 
 
 
@@ -85,12 +91,6 @@ prep() {
 
 
 download_mgl_gh() {
-	# We download the repository as zip
-	temp_dir="/tmp/0mhz-collection"
-	repo_zip_url="https://github.com/0mhz-net/0mhz-collection/archive/refs/heads/main.zip"
-	repo_zip_path="/tmp/0mhz-collection.zip"
-	mgls_dir_name="0mhz-collection-main/mgls"
-	mgl_gh_dir="$temp_dir/$mgls_dir_name"
 	
 	# Download and unzip the repository
 	download_and_unzip_repo() {
@@ -107,17 +107,15 @@ download_mgl_gh() {
 		echo "Preferring MT-32 files"
 		echo ""
 	
-		# Find all standard .mgl files
-		find "$mgl_gh_dir"  -maxdepth 1 -type f -name "*.mgl" | sort | while read standard_file; do
+		find "$gh_mgl_dir"  -maxdepth 1 -type f -name "*.mgl" | sort | while read standard_file; do
 			# Determine MT-32 counterpart
 			mt32_file="${standard_file%.*} (MT-32).mgl"
-			mt32_file="${mt32_file/$mgl_gh_dir/$mgl_gh_dir/_MT-32}"
+			mt32_file="${mt32_file/$gh_mgl_dir/$gh_mgl_dir/_MT-32}"
 	
 			if [[ -f "$mt32_file" ]]; then
-				# If MT-32 counterpart exists, prefer it by deleting the standard file and moving it in place
-				echo "Processing $(basename "$mt32_file")"
+				# If MT-32 counterpart exists, prefer it by deleting the standard file and moving it in place (tmp dir)
 				rm -f "$standard_file"
-				cp "$mt32_file" "$mgl_gh_dir"
+				cp "$mt32_file" "$gh_mgl_dir"
 			fi
 		done
 	}
@@ -128,6 +126,13 @@ download_mgl_gh() {
 		prefer_mt32_files
 	fi
 	
+	# Find all local and remote mgls
+
+	shopt -s nullglob
+	gh_mgl_files=("$gh_mgl_dir"/*.mgl)
+	dos_mgl_files=("$dos_mgl"/*.mgl)
+	shopt -u nullglob
+	
 	echo "Download of Github MGL Archive complete."
 	echo ""
 }
@@ -135,74 +140,77 @@ download_mgl_gh() {
 #### MGL COMPARE REMOTE TO LOCAL
 
 archive_zip_view() {
-	file_name=$1
-	new_url="${xml_url/0mhz-dos_files.xml/$file_name}" # Replace the XML file name with the ZIP file name
-	new_url=$(echo "$new_url" | sed 's/ /%20/g'| sed 's/^ *//g; s|/$||; s|$|/|') # Encode spaces as %20 for URL compatibility and trailing slash to view zip
-	curl -s --insecure -L "$new_url" | grep "games/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p'
-}
+    file_name=$1
+    # Replace the XML file name with the ZIP file name
+    new_url="${xml_url/0mhz-dos_files.xml/$file_name}"
+    # Encode spaces as %20 for URL compatibility and ensure correct URL format
+    new_url=$(echo "$new_url" | sed 's/ /%20/g' | sed 's/^ *//g; s|/$||; s|$|/|')
 
+    # Use curl to fetch the data
+    curl_output=$(curl -s --insecure -L "$new_url")
 
-cleanup() {
-    shopt -u nullglob
-}
-
-mgl_updater() {
-    # Set the trap to call cleanup on script exit
-    trap cleanup EXIT
-
-    shopt -s nullglob
-
-    dos_mgl_files=("$dos_mgl"/*.mgl)
-    if [ ${#dos_mgl_files[@]} -eq 0 ]; then
-        echo "No .mgl files found locally. Continuing..."
-        cp -v "$mgl_gh_dir"/*.mgl "$dos_mgl"
-        return
-    else
-        echo "Checking for differences between local and remote .mgl files"
+    # Check if curl command was successful
+    if [ $? -ne 0 ]; then
+        echo "Error accessing $new_url. Please check your internet connection or URL."
+        return 1
     fi
 
-    gh_mgl_files=("$mgl_gh_dir"/*.mgl)
+    # Validate the output, for example, by checking if it includes expected file names
+    if ! echo "$curl_output" | grep -q "games/"; then
+        echo "Unexpected content received from $new_url. Please verify the URL and the content structure."
+        return 1
+    fi
+
+    # Process the output if it's valid
+    echo "$curl_output" | grep "games/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p'
+}
+
+
+
+mgl_updater() {  
     if [ ${#gh_mgl_files[@]} -eq 0 ]; then
         echo "No .mgl files found in GitHub directory. Skipping update check."
+        return
+    elif [ ${#dos_mgl_files[@]} -eq 0 ]; then
+        echo "No .mgl files found locally. Continuing..."
+        for gh_mgl_file in "${gh_mgl_files[@]}"; do
+            # Assuming direct copy if no local files for comparison
+            cp -v "$gh_mgl_file" "$dos_mgl"
+        done
+        return
     else
         echo "Comparing local and remote .mgl files"
         for gh_mgl_file in "${gh_mgl_files[@]}"; do
             gh_mgl_basename=$(basename "$gh_mgl_file")
             local_file_path="$dos_mgl/$gh_mgl_basename"
-            
-            # Check if the file exists locally
-            if [[ -f "$local_file_path" ]]; then
-                if ! cmp -s "$gh_mgl_file" "$local_file_path"; then
-                    echo "Difference detected in $gh_mgl_basename"
-
-                    # Generate the paths from the zip archive and modify them
-                    archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip" | sed 's|games/ao486/||')
-                    
-                    # Check if all files in Archive.org's hosted zip are present in the mgl description
-                    all_paths_exist=true
-                    while read -r line; do
-                        if ! fgrep -q "$line" "$gh_mgl_file"; then
-                            all_paths_exist=false
-                            break
-                        fi
-                    done <<< "$archive_zip_view_output"
-                    
-                    if [ "$all_paths_exist" = true ]; then
-                        echo "Archive content matches .mgl file. Updating local file with remote file."
-                        cp -f "$gh_mgl_file" "$dos_mgl/"
-                    else
-                        echo "Remote zip file not up to date with mgl, skipping..."
-                        continue
+            # Proceed with comparison only if differences are detected or file doesn't exist locally
+            if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
+                echo "New file: $gh_mgl_basename"
+                
+                # Generate the paths from the zip archive and modify them
+                archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip" | sed 's|games/ao486/||')
+                
+                # Check if all files in Archive.org's hosted zip are present in the mgl description
+                all_paths_exist=true
+                while read -r line; do
+                    if ! fgrep -q "$line" "$gh_mgl_file"; then
+                        all_paths_exist=false
+                        break
                     fi
+                done <<< "$archive_zip_view_output"
+                
+                if [ "$all_paths_exist" = true ]; then
+                    echo "Archive content matches .mgl file. Updating local file with remote file."
+                    cp -f "$gh_mgl_file" "$dos_mgl/"
+                else
+                    echo "Remote zip file content does not match .mgl file, discarding..."
                 fi
-            else
-                echo "New .mgl file detected: $gh_mgl_basename"
-                # Since it's a new file, just copy it over
-                cp "$gh_mgl_file" "$dos_mgl/"
             fi
         done
     fi
 }
+
+
 
 
 #### MGL FILES CHECK
@@ -268,16 +276,14 @@ zip_download() {
 	# Fetch the XML file and extract all file names
 	file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' - | sed -e 's/name="\([^"]*\)"/\1\n/g' | sed 's/&amp;/\&/g')
 	
-	# Iterate through the mgl_with_missing_paths array
+	# Which zips are we msising
 	for mgl_file in "${mgl_with_missing_paths[@]}"; do
-		base_name="${mgl_file%.mgl}"
-		standard_name="${base_name}.zip"
-	
-		# Initialize variable to hold the selected file name
+		base_mgl="${mgl_file%.mgl}"
+		zip_name="${base_mgl}.zip"
 		selected_zip=""
 		echo ""
-		echo "Downloading: $standard_name"
-		selected_zip="$standard_name"
+		echo "Downloading: $zip_name"
+		selected_zip="$zip_name"
 	
 		# Proceed with download if a file has been selected
 		if [ ! -z "$selected_zip" ]; then
@@ -285,11 +291,20 @@ zip_download() {
 			dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
 			mkdir -p "${base_dir}/.0mhz_downloader"
 			curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
-			if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
-				echo "Unzipped $selected_zip successfully."
-				rm "$base_dir/.0mhz_downloader/${selected_zip}"
+			
+			# Verify the file was downloaded and is not empty
+			if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
+				# Only unzip media folder
+				if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
+					echo "Unzipped $selected_zip successfully."
+					rm "$base_dir/.0mhz_downloader/${selected_zip}"
+				else
+					echo "Error unzipping $selected_zip. Archive may be corrupt or not a valid zip file."
+					continue
+				fi
 			else
-				echo "Error unzipping $selected_zip."
+				echo "Download failed or file is empty. Skipping."
+				continue
 			fi
 		fi
 	done
