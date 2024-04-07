@@ -29,7 +29,7 @@ games_loc="/media/fat"
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=false
+prefer_mt32=true
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
@@ -57,7 +57,6 @@ xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
 prep() {
 	# Ensure the local directory exists
 	mkdir -p "$dos_mgl"
-	mkdir -p /media/fat/games/AO486/media
 	mkdir -p "$base_dir"/media
 	
 	# Empty out the mgl_dir if always_dl_mgl is true
@@ -115,12 +114,12 @@ download_mgl_gh() {
 			fi
 		done
 	}
+
+	download_and_unzip_repo
 	
 	if [ "$prefer_mt32" = true ]; then
 		prefer_mt32_files
 	fi
-	
-	download_and_unzip_repo
 	
 	echo "Download of Github MGL Archive complete."
 	echo ""
