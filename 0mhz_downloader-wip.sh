@@ -34,7 +34,7 @@ games_loc="/media/fat"
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=true
+prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
