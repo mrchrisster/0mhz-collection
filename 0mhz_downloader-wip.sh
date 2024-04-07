@@ -19,8 +19,13 @@
 
 
 
-
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
+# NOTE REGARDING SAVE GAMES: 
+# Save games are stored in the vhd. No save games will be deleted by this program
+# If a game gets updated you have a sve for, the new vhd will have a different name if its a new version
+# If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd
+
+
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
 games_loc="/media/fat"
@@ -131,7 +136,6 @@ archive_zip_view() {
 	file_name=$1
 	new_url="${xml_url/0mhz-dos_files.xml/$file_name}" # Replace the XML file name with the ZIP file name
 	new_url=$(echo "$new_url" | sed 's/ /%20/g'| sed 's/^ *//g; s|/$||; s|$|/|') # Encode spaces as %20 for URL compatibility and trailing slash to view zip
-	#content_mgl=$(curl -s --insecure -L "$new_url" | grep ".mgl" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p')
 	curl -s --insecure -L "$new_url" | grep "games/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p'
 }
 
