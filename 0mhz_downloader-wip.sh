@@ -22,8 +22,8 @@
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 # NOTE REGARDING SAVE GAMES: 
 # Save games are stored in the vhd. No save games will be deleted by this program
-# If a game gets updated you have a sve for, the new vhd will have a different name if its a new version
-# If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd
+# If a game gets updated you have a save for, the new vhd will have a different name than the old version (e.g. "Game Name.r2.vhd")
+# If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd or transfer your save to the new version
 
 
 
