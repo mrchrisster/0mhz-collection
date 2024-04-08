@@ -35,7 +35,7 @@ games_loc="/media/usb0"
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=true
+prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
@@ -68,6 +68,9 @@ prep() {
 	# Ensure the local directory exists
 	mkdir -p "$dos_mgl"
 	mkdir -p "$base_dir"/media
+	
+	# Delete extracted zip if it exists
+	rm -rf /tmp/0mhz-collection
 	
 	# Empty out the mgl_dir if always_dl_mgl is true
 	if [ "$always_dl_mgl" = true ]; then
@@ -135,6 +138,8 @@ download_mgl_gh() {
 }
 
 #### MGL COMPARE REMOTE TO LOCAL
+# This works in it's current state but should probably all be rewritten in python for better url encoding/html decoding
+
 
 archive_zip_view() {
 	echo "$1"
@@ -157,7 +162,7 @@ archive_zip_view() {
     fi
 
     # Process the output and make sure it's valid
-    echo "$curl_output" | grep "media/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||'
+    echo "$curl_output" | grep "media/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||'
 }
 
 
