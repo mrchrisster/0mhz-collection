@@ -371,7 +371,7 @@ cleanup() {
 }
 
 
-#####  And Action!
+#####  MGL AWAY
 
 prep
 download_mgl_gh
