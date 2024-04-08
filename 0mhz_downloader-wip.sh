@@ -161,8 +161,8 @@ archive_zip_view() {
         return 1
     fi
 
-    # Process the output if it's valid
-    echo "$curl_output" | grep "games/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p'
+    # Process the output and make sure it's valid
+    echo "$curl_output" | grep "media/" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||'
 }
 
 
@@ -195,14 +195,12 @@ mgl_updater() {
 
                 # Convert archive_zip_view_output to an array
                 readarray -t archive_paths <<< "$archive_zip_view_output"
-                
-                # Extract paths from the .mgl file
-                mapfile -t mgl_paths < <(grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="\(.*\)"/\1/')
 
-                for mgl_path in "${mgl_paths[@]}"; do
-                    if ! printf "%s\n" "${archive_paths[@]}" | fgrep -q -- "$mgl_path"; then
+				for archive_path in "${archive_paths[@]}"; do
+					echive_path
+                    if ! fgrep -q -- "${archive_path}" "$gh_mgl_file"; then
                         all_paths_exist=false
-                        echo "Missing path in archive: $mgl_path"
+                        echo "Missing path in archive: $archive_path"
                         break  # Exit the loop as soon as a missing path is found
                     fi
                 done
@@ -228,7 +226,7 @@ mgl_updater() {
 #### MGL FILES CHECK
 
 mgl_files_check() {
-	echo "Checking if files exist"
+	echo "Checking if local files exist"
 	
 	# Initialize an array to hold all paths mentioned in mgl
 	referenced_paths=()
@@ -285,7 +283,7 @@ mgl_files_check() {
 	# Check if any .mgl files with missing paths were found
 	if [ ${#mgl_with_missing_paths[@]} -eq 0 ]; then
 		echo ""
-		echo "No .mgl files with missing files were found."
+		echo "All .mgl files match up with installed games."
 	else
 		echo ""
 		echo "List of .mgl files with missing files:"
