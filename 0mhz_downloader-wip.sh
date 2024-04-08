@@ -177,6 +177,8 @@ mgl_updater() {
         done
         return
     fi
+    
+    mgl_with_missing_zips=()
 
     echo "Comparing local and remote .mgl files"
     for gh_mgl_file in "${gh_mgl_files[@]}"; do
@@ -210,9 +212,12 @@ mgl_updater() {
                     cp -f "$gh_mgl_file" "$dos_mgl/"
                 else
                     echo "One or more .mgl paths not found in archive, discarding $gh_mgl_basename..."
+                    mgl_with_missing_zips+=("$gh_mgl_basename")
+                    
                 fi
             else
                 echo "Error retrieving archive list for $gh_mgl_basename, skipping..."
+                mgl_with_missing_zips+=("$gh_mgl_basename")
             fi
         fi
     done
@@ -265,9 +270,22 @@ mgl_files_check() {
 		fi
 	done
 	
+	# Check if any .mgl files with missing remote zips were found
+	if [ ${#mgl_with_missing_zips[@]} -eq 0 ]; then
+		echo ""
+		echo "No .mgl files with missing remote zip files were found."
+	else
+		echo ""
+		echo "List of .mgl files with missing remote zip files:"
+		for mgl_file in "${mgl_with_missing_zips[@]}"; do
+			echo "$mgl_file"
+		done
+	fi
+	
 	# Check if any .mgl files with missing paths were found
 	if [ ${#mgl_with_missing_paths[@]} -eq 0 ]; then
-		echo "No .mgl files with missing paths were found."
+		echo ""
+		echo "No .mgl files with missing files were found."
 	else
 		echo ""
 		echo "List of .mgl files with missing files:"
@@ -275,6 +293,9 @@ mgl_files_check() {
 			echo "$mgl_file"
 		done
 	fi
+	
+
+	
 }
 
 #### ARCHIVE ZIP DOWNLOAD
@@ -379,5 +400,4 @@ mgl_updater
 mgl_files_check
 zip_download
 cleanup
-
 
