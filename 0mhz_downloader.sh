@@ -27,7 +27,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -281,7 +281,6 @@ zip_download() {
             for mgl_path in "${mgl_paths[@]}"; do
                 if ! fgrep -q -- "$mgl_path" <<< "${archive_paths[*]}"; then
                     zip_file_correct=false
-                    echo "Missing path"
                     echo "$mgl_path not found in archive.org zip"
                     break
                 fi
