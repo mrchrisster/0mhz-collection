@@ -29,13 +29,13 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=true
+prefer_mt32=false
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
