@@ -288,14 +288,14 @@ zip_download() {
             done
 
             if [ "$zip_file_correct" = true ]; then
-                echo "Zip and contents verified. Downloading: $zip_name"
+                echo "Zip and contents verified. Downloading..."
                 selected_zip="$zip_name"
             else
-                echo "Zip file or contents incorrect. Skipping download for: $zip_name"
+                echo "Zip file or contents incorrect. Skipping download."
                 return
             fi
         else
-            echo "Zip file not found on archive.org. Skipping download for: $zip_name"
+            echo "Zip file not found on archive.org. Skipping download."
             return
         fi
 
