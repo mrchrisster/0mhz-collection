@@ -166,7 +166,6 @@ archive_zip_view() {
 }
 
 
-
 mgl_updater() {
     if [ ${#gh_mgl_files[@]} -eq 0 ]; then
         echo "No .mgl files found in GitHub directory. Skipping update check."
@@ -192,12 +191,17 @@ mgl_updater() {
                 # Assume all paths exist until proven otherwise
                 all_paths_exist=true
 
-                # Read paths from the .mgl file and check against the archive list
-                grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="\(.*\)"/\1/' | while IFS= read -r mgl_path; do
-                    if ! echo "$archive_zip_view_output" | grep -q "$mgl_path"; then
+                # Convert archive_zip_view_output to an array
+                readarray -t archive_paths <<< "$archive_zip_view_output"
+                
+                # Extract paths from the .mgl file
+                mapfile -t mgl_paths < <(grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="\(.*\)"/\1/')
+
+                for mgl_path in "${mgl_paths[@]}"; do
+                    if ! printf "%s\n" "${archive_paths[@]}" | fgrep -q -- "$mgl_path"; then
                         all_paths_exist=false
                         echo "Missing path in archive: $mgl_path"
-                        break
+                        break  # Exit the loop as soon as a missing path is found
                     fi
                 done
 
@@ -208,15 +212,11 @@ mgl_updater() {
                     echo "One or more .mgl paths not found in archive, discarding $gh_mgl_basename..."
                 fi
             else
-                # Handle the error based on the archive_zip_view function's return value
                 echo "Error retrieving archive list for $gh_mgl_basename, skipping..."
             fi
         fi
     done
 }
-
-
-
 
 
 
