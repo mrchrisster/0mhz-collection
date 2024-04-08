@@ -29,7 +29,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -185,6 +185,7 @@ mgl_updater() {
         gh_mgl_basename=$(basename "$gh_mgl_file")
         local_file_path="$dos_mgl/$gh_mgl_basename"
         
+		# Conditions to update
         if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
             echo "Processing: $gh_mgl_basename"
 
@@ -192,18 +193,21 @@ mgl_updater() {
             if archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip"); then
                 # Assume all paths exist until proven otherwise
                 all_paths_exist=true
+				
+				# Convert paths found in mgl to an array
+				readarray -t mgl_paths < <(grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="//;s/"//')
 
-                # Convert archive_zip_view_output to an array
+                # Convert paths found in remote zip to an array
                 readarray -t archive_paths <<< "$archive_zip_view_output"
 
-				for archive_path in "${archive_paths[@]}"; do
-					echive_path
-                    if ! fgrep -q -- "${archive_path}" "$gh_mgl_file"; then
-                        all_paths_exist=false
-                        echo "Missing path in archive: $archive_path"
-                        break  # Exit the loop as soon as a missing path is found
-                    fi
-                done
+				all_paths_exist=true
+				for mgl_path in "${mgl_paths[@]}"; do
+					if ! fgrep -q -- "$mgl_path" <<< "${archive_paths[*]}"; then
+						all_paths_exist=false
+						echo "Missing path in archive: $mgl_path"
+						break
+					fi
+				done
 
                 if [ "$all_paths_exist" = true ]; then
                     echo "All .mgl paths found in archive. Updating local mgl file."
@@ -398,4 +402,3 @@ mgl_updater
 mgl_files_check
 zip_download
 cleanup
-
