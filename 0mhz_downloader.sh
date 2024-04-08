@@ -17,8 +17,6 @@
 # Copyright 2024 mrchrisster
 
 
-
-
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
 # NOTE REGARDING SAVE GAMES: 
@@ -141,86 +139,28 @@ download_mgl_gh() {
 # This works in it's current state but should probably all be rewritten in python for better url encoding/html decoding
 
 
-archive_zip_view() {
-	echo "$1"
-    # Use jq to URL-encode the file name properly.
-    encoded_file_name=$(echo "$1" | tr -d '\n' | jq -sRr '@uri')
-    # Construct the new URL with the encoded file name and ensure it ends with a slash
-    new_url="${xml_url/0mhz-dos_files.xml/$encoded_file_name}/"
-    curl_output=$(curl -s --insecure -L "$new_url")
-
-    # Check if curl command was successful
-    if [ $? -ne 0 ]; then
-        echo "Error accessing $new_url. Please check your internet connection or URL."
-        return 1
-    fi
-
-    # Validate the output, for example, by checking if it includes expected file names
-    if ! echo "$curl_output" | grep -q "games/"; then
-        echo "Unexpected content received from $new_url."
-        return 1
-    fi
-
-    # Process the output and make sure it's valid
-    echo "$curl_output" | grep "media/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||'
-}
-
-
 mgl_updater() {
     if [ ${#gh_mgl_files[@]} -eq 0 ]; then
         echo "No .mgl files found in GitHub directory. Skipping update check."
         return
     elif [ ${#dos_mgl_files[@]} -eq 0 ]; then
-        echo "No .mgl files found locally. Copying all from GitHub..."
+        echo "Rebuilding mgl directory..."
         for gh_mgl_file in "${gh_mgl_files[@]}"; do
             cp -v "$gh_mgl_file" "$dos_mgl"
         done
         return
     fi
-    
-    mgl_with_missing_zips=()
 
     echo "Comparing local and remote .mgl files"
     for gh_mgl_file in "${gh_mgl_files[@]}"; do
-        gh_mgl_basename=$(basename "$gh_mgl_file")
-        local_file_path="$dos_mgl/$gh_mgl_basename"
+        
+		local_file_path="$dos_mgl/$gh_mgl_basename"
         
 		# Conditions to update
         if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
             echo -n "Processing: $gh_mgl_basename ... "
-
-            # Fetch the archive content list
-            if archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip"); then
-                # Assume all paths exist until proven otherwise
-                all_paths_exist=true
-				
-				# Convert paths found in mgl to an array
-				readarray -t mgl_paths < <(grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="//;s/"//')
-
-                # Convert paths found in remote zip to an array
-                readarray -t archive_paths <<< "$archive_zip_view_output"
-
-				all_paths_exist=true
-				for mgl_path in "${mgl_paths[@]}"; do
-					if ! fgrep -q -- "$mgl_path" <<< "${archive_paths[*]}"; then
-						all_paths_exist=false
-						echo "Missing path"
-						echo "$mgl_path not found in archive.org zip"
-						mgl_with_missing_zips+=("$gh_mgl_basename")
-						break
-					fi
-				done
-
-                if [ "$all_paths_exist" = true ]; then
-                    echo "Zip Found"
-                    cp -f "$gh_mgl_file" "$dos_mgl/" 
-                fi
-            else
-                echo "Zip not found"
-                mgl_with_missing_zips+=("$gh_mgl_basename")
-            fi
-			echo ""
-        fi
+            cp -f "$gh_mgl_file" "$dos_mgl/" 
+		fi
     done
 }
 
@@ -271,18 +211,6 @@ mgl_files_check() {
 		fi
 	done
 	
-	# Check if any .mgl files with missing remote zips were found
-	if [ ${#mgl_with_missing_zips[@]} -eq 0 ]; then
-		echo ""
-		echo "No .mgl files with missing remote zip files were found."
-	else
-		echo ""
-		echo "List of .mgl files with missing remote zip files:"
-		for mgl_file in "${mgl_with_missing_zips[@]}"; do
-			echo "$mgl_file"
-		done
-	fi
-	
 	# Check if any .mgl files with missing paths were found
 	if [ ${#mgl_with_missing_paths[@]} -eq 0 ]; then
 		echo ""
@@ -301,43 +229,101 @@ mgl_files_check() {
 
 #### ARCHIVE ZIP DOWNLOAD
 
-zip_download() {
-	# Fetch the XML file and extract all file names
-	file_names=$(curl --insecure -L -s "$xml_url" | xmllint --xpath '//file/@name' - | sed -e 's/name="\([^"]*\)"/\1\n/g' | sed 's/&amp;/\&/g')
-	
-	# Which zips are we msising
-	for mgl_file in "${mgl_with_missing_paths[@]}"; do
-		base_mgl="${mgl_file%.mgl}"
-		zip_name="${base_mgl}.zip"
-		selected_zip=""
-		echo ""
-		echo "Downloading: $zip_name"
-		selected_zip="$zip_name"
-	
-		# Proceed with download if a file has been selected
-		if [ ! -z "$selected_zip" ]; then
-			echo "Downloading selected zip: $selected_zip"
-			dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
-			mkdir -p "${base_dir}/.0mhz_downloader"
-			curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
-			
-			# Verify the file was downloaded and is not empty
-			if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
-				# Only unzip media folder
-				if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
-					echo "Unzipped $selected_zip successfully."
-					rm "$base_dir/.0mhz_downloader/${selected_zip}"
-				else
-					echo "Error unzipping $selected_zip. Archive may be corrupt or not a valid zip file."
-					continue
-				fi
-			else
-				echo "Download failed or file is empty. Skipping."
-				continue
-			fi
-		fi
-	done
+
+
+archive_zip_view() {
+	echo "$1"
+    # Use jq to URL-encode the file name properly.
+    encoded_file_name=$(echo "$1" | tr -d '\n' | jq -sRr '@uri')
+    # Construct the new URL with the encoded file name and ensure it ends with a slash
+    new_url="${xml_url/0mhz-dos_files.xml/$encoded_file_name}/"
+    curl_output=$(curl -s --insecure -L "$new_url")
+
+    # Check if curl command was successful
+    if [ $? -ne 0 ]; then
+        echo "Error accessing $new_url. Please check your internet connection or URL."
+        return 1
+    fi
+
+    # Validate the output, for example, by checking if it includes expected file names
+    if ! echo "$curl_output" | grep -q "games/"; then
+        echo "Unexpected content received from $new_url."
+        return 1
+    fi
+
+    # Process the output and make sure it's valid
+    echo "$curl_output" | grep "media/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||'
 }
+
+
+zip_download() {
+    # Function to check for zip file on archive.org and verify its contents
+    check_and_download_zip() {
+        local mgl_file="$1"
+        local base_mgl="${mgl_file%.mgl}"
+        local zip_name="${base_mgl}.zip"
+        local selected_zip=""
+        echo ""
+        echo "Checking: $zip_name"
+
+        # Use the archive_zip_view function to check if the zip file exists and has the correct contents
+        if archive_zip_view_output=$(archive_zip_view "${zip_name}"); then
+            # Assume the zip file is correct until proven otherwise
+            zip_file_correct=true
+            
+            # Convert paths found in mgl to an array
+            readarray -t mgl_paths < <(grep -o 'path="[^"]*"' "$dos_mgl/$mgl_file" | sed 's/path="//;s/"//')
+
+            # Convert paths found in remote zip to an array
+            readarray -t archive_paths <<< "$archive_zip_view_output"
+
+            for mgl_path in "${mgl_paths[@]}"; do
+                if ! fgrep -q -- "$mgl_path" <<< "${archive_paths[*]}"; then
+                    zip_file_correct=false
+                    echo "Missing path"
+                    echo "$mgl_path not found in archive.org zip"
+                    break
+                fi
+            done
+
+            if [ "$zip_file_correct" = true ]; then
+                echo "Zip and contents verified. Downloading: $zip_name"
+                selected_zip="$zip_name"
+            else
+                echo "Zip file or contents incorrect. Skipping download for: $zip_name"
+                return
+            fi
+        else
+            echo "Zip file not found on archive.org. Skipping download for: $zip_name"
+            return
+        fi
+
+        # Proceed with download if a file has been selected
+        if [ ! -z "$selected_zip" ]; then
+            dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
+            mkdir -p "${base_dir}/.0mhz_downloader"
+            curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
+            
+            # Verify the file was downloaded and is not empty
+            if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
+                # Only unzip media folder
+                if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
+                    echo "Unzipped $selected_zip successfully."
+                    rm "$base_dir/.0mhz_downloader/${selected_zip}"
+                else
+                    echo "Error unzipping $selected_zip. Archive may be corrupt or not a valid zip file."
+                fi
+            else
+                echo "Download failed or file is empty for $selected_zip. Skipping."
+            fi
+        fi
+    }
+
+    for mgl_file in "${mgl_with_missing_paths[@]}"; do
+        check_and_download_zip "$mgl_file"
+    done
+}
+
 
 #### CLEANUP
 
