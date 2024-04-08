@@ -27,7 +27,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -124,44 +124,45 @@ download_mgl_gh() {
 		prefer_mt32_files
 	fi
 	
-	# Store all local and remote mgls in arrays for later use
-
-	shopt -s nullglob
-	gh_mgl_files=("$gh_mgl_dir"/*.mgl)
-	dos_mgl_files=("$dos_mgl"/*.mgl)
-	shopt -u nullglob
-	
 	echo "Download of Github MGL Archive complete."
 	echo ""
 }
 
 #### MGL COMPARE REMOTE TO LOCAL
-# This works in it's current state but should probably all be rewritten in python for better url encoding/html decoding
-
 
 mgl_updater() {
+	# Store all local and remote mgls in arrays for later use
+	shopt -s nullglob
+	gh_mgl_files=("$gh_mgl_dir"/*.mgl)
+	dos_mgl_files=("$dos_mgl"/*.mgl)
+	shopt -u nullglob
+
+
     if [ ${#gh_mgl_files[@]} -eq 0 ]; then
         echo "No .mgl files found in GitHub directory. Skipping update check."
         return
     elif [ ${#dos_mgl_files[@]} -eq 0 ]; then
         echo "Rebuilding mgl directory..."
         for gh_mgl_file in "${gh_mgl_files[@]}"; do
-            cp -v "$gh_mgl_file" "$dos_mgl"
+			echo "Copying: $(basename "$gh_mgl_file") ... "
+            cp -f "$gh_mgl_file" "$dos_mgl"
         done
         return
     fi
-
-    echo "Comparing local and remote .mgl files"
+	
+    echo "Comparing local and remote .mgl files..."
     for gh_mgl_file in "${gh_mgl_files[@]}"; do
         
-		local_file_path="$dos_mgl/$gh_mgl_basename"
+		local_mgl_path="$dos_mgl/$(basename "$gh_mgl_file")"
         
 		# Conditions to update
-        if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
-            echo -n "Processing: $gh_mgl_basename ... "
+        if [[ ! -f "$local_mgl_path" ]] || ! cmp -s "$gh_mgl_file" "$local_mgl_path"; then
+            echo "Copying: $(basename "$gh_mgl_file") ... "
             cp -f "$gh_mgl_file" "$dos_mgl/" 
 		fi
     done
+	echo "Comparison finished."
+	echo ""
 }
 
 
