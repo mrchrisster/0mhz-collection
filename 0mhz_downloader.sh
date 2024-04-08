@@ -29,13 +29,13 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=false
+prefer_mt32=true
 
 # Always download fresh copies of mgls to assure we stay up to date
 always_dl_mgl=false
@@ -206,12 +206,13 @@ mgl_updater() {
 						all_paths_exist=false
 						echo "Missing path"
 						echo "$mgl_path not found in archive.org zip"
+						mgl_with_missing_zips+=("$gh_mgl_basename")
 						break
 					fi
 				done
 
                 if [ "$all_paths_exist" = true ]; then
-                    echo "Found"
+                    echo "Zip Found"
                     cp -f "$gh_mgl_file" "$dos_mgl/" 
                 fi
             else
