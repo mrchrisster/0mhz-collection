@@ -126,7 +126,7 @@ download_mgl_gh() {
 		prefer_mt32_files
 	fi
 	
-	# Find all local and remote mgls
+	# Store all local and remote mgls in arrays for later use
 
 	shopt -s nullglob
 	gh_mgl_files=("$gh_mgl_dir"/*.mgl)
@@ -157,7 +157,7 @@ archive_zip_view() {
 
     # Validate the output, for example, by checking if it includes expected file names
     if ! echo "$curl_output" | grep -q "games/"; then
-        echo "Unexpected content received from $new_url. Please verify the URL and the content structure."
+        echo "Unexpected content received from $new_url."
         return 1
     fi
 
@@ -167,48 +167,55 @@ archive_zip_view() {
 
 
 
-mgl_updater() {  
+mgl_updater() {
     if [ ${#gh_mgl_files[@]} -eq 0 ]; then
         echo "No .mgl files found in GitHub directory. Skipping update check."
         return
     elif [ ${#dos_mgl_files[@]} -eq 0 ]; then
-        echo "No .mgl files found locally. Continuing..."
+        echo "No .mgl files found locally. Copying all from GitHub..."
         for gh_mgl_file in "${gh_mgl_files[@]}"; do
-            # Assuming direct copy if no local files for comparison
             cp -v "$gh_mgl_file" "$dos_mgl"
         done
         return
-    else
-        echo "Comparing local and remote .mgl files"
-        for gh_mgl_file in "${gh_mgl_files[@]}"; do
-            gh_mgl_basename=$(basename "$gh_mgl_file")
-            local_file_path="$dos_mgl/$gh_mgl_basename"
-            # Proceed with comparison only if differences are detected or file doesn't exist locally
-            if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
-                echo "New file: $gh_mgl_basename"
-                
-                # Generate the paths from the zip archive and modify them
-                archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip" | sed 's|games/ao486/||')
-                
-                # Check if all files in Archive.org's hosted zip are present in the mgl description
+    fi
+
+    echo "Comparing local and remote .mgl files"
+    for gh_mgl_file in "${gh_mgl_files[@]}"; do
+        gh_mgl_basename=$(basename "$gh_mgl_file")
+        local_file_path="$dos_mgl/$gh_mgl_basename"
+        
+        if [[ ! -f "$local_file_path" ]] || ! cmp -s "$gh_mgl_file" "$local_file_path"; then
+            echo "Processing: $gh_mgl_basename"
+
+            # Fetch the archive content list
+            if archive_zip_view_output=$(archive_zip_view "${gh_mgl_basename%.mgl}.zip"); then
+                # Assume all paths exist until proven otherwise
                 all_paths_exist=true
-                while read -r line; do
-                    if ! fgrep -q "$line" "$gh_mgl_file"; then
+
+                # Read paths from the .mgl file and check against the archive list
+                grep -o 'path="[^"]*"' "$gh_mgl_file" | sed 's/path="\(.*\)"/\1/' | while IFS= read -r mgl_path; do
+                    if ! echo "$archive_zip_view_output" | grep -q "$mgl_path"; then
                         all_paths_exist=false
+                        echo "Missing path in archive: $mgl_path"
                         break
                     fi
-                done <<< "$archive_zip_view_output"
-                
+                done
+
                 if [ "$all_paths_exist" = true ]; then
-                    echo "Archive content matches .mgl file. Updating local file with remote file."
+                    echo "All .mgl paths found in archive. Updating local mgl file."
                     cp -f "$gh_mgl_file" "$dos_mgl/"
                 else
-                    echo "Remote zip file content does not match .mgl file, discarding..."
+                    echo "One or more .mgl paths not found in archive, discarding $gh_mgl_basename..."
                 fi
+            else
+                # Handle the error based on the archive_zip_view function's return value
+                echo "Error retrieving archive list for $gh_mgl_basename, skipping..."
             fi
-        done
-    fi
+        fi
+    done
 }
+
+
 
 
 
