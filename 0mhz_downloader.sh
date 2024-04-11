@@ -19,7 +19,7 @@
 
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
-# NOTE REGARDING SAVE GAMES: 
+# NOTE: 
 # Save games are stored in the vhd. No save games will be deleted by this program
 # If a game gets updated you have a save for, the new vhd will have a different name than the old version (e.g. "Game Name.r2.vhd")
 # If you played a game and have a save and a new version is out, you would have to manually edit the mgl to point to the old vhd or transfer your save to the new version
@@ -27,7 +27,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
