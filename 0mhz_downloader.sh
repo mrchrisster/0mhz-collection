@@ -41,8 +41,8 @@ always_dl_mgl=false
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true
 
-
-
+# Uses aria2c for downloading from archive which should increase download speeds a lot
+download_manager=true
 
 ###### CODE STARTS HERE
 
@@ -258,6 +258,44 @@ archive_zip_view() {
 
 
 zip_download() {
+
+	if [ "$download_manager" = true ]; then
+		# Check if the file exists
+		if [ ! -f "$aria2_path" ]; then
+			aria2_path="/media/fat/linux/aria2c"
+			
+			aria2_urls=(
+				"https://github.com/mrchrisster/0mhz-collection/blob/main/aria2c/aria2c.zip.001?raw=true"
+				"https://github.com/mrchrisster/0mhz-collection/blob/main/aria2c/aria2c.zip.002?raw=true"
+				"https://github.com/mrchrisster/0mhz-collection/blob/main/aria2c/aria2c.zip.003?raw=true"
+				"https://github.com/mrchrisster/0mhz-collection/blob/main/aria2c/aria2c.zip.004?raw=true"
+			)	
+			echo ""
+			echo -n "Installing aria2c Download Manager... "
+			for url in "${aria2_urls[@]}"; do
+				file_name=$(basename "${url%%\?*}")
+				curl -s --insecure -L $url -o /tmp/"$file_name"
+				if [ $? -ne 0 ]; then
+					echo "Failed to download $file_name"
+					download_manager=no
+				fi
+			done
+			
+			# Check if the download was successful
+			if [ $? -eq 0 ]; then
+				echo "Done."
+			else
+				echo "Failed."
+			fi
+		
+			cat /tmp/aria2c.zip.* > /tmp/aria2c_full.zip
+			unzip -qq -o /tmp/aria2c_full.zip -d /media/fat/linux
+
+		fi
+	fi
+
+	
+	
     # Function to check for zip file on archive.org and verify its contents
     check_and_download_zip() {
         local mgl_file="$1"
@@ -302,7 +340,12 @@ zip_download() {
         if [ ! -z "$selected_zip" ]; then
             dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
             mkdir -p "${base_dir}/.0mhz_downloader"
-            curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
+            if [ "$download_manager" = true ]; then
+            	/media/fat/linux/aria2c -x 16 --allow-overwrite=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
+
+            else
+            	curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
+            fi
             
             # Verify the file was downloaded and is not empty
             if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
