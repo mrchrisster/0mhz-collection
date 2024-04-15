@@ -41,7 +41,7 @@ always_dl_mgl=false
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true
 
-# Uses aria2c for downloading from archive which should increase download speeds a lot
+# Uses aria2c (compiled by wizzo) for downloading from archive which should increase download speeds a lot
 download_manager=true
 
 ###### CODE STARTS HERE
@@ -69,6 +69,7 @@ prep() {
 	
 	# Delete extracted zip if it exists
 	rm -rf /tmp/0mhz-collection
+	rm -rf "${base_dir}"/.0mhz_downloader
 	
 	# Empty out the mgl_dir if always_dl_mgl is true
 	if [ "$always_dl_mgl" = true ]; then
@@ -260,9 +261,10 @@ archive_zip_view() {
 zip_download() {
 
 	if [ "$download_manager" = true ]; then
-		# Check if the file exists
+	
+		aria2_path="/media/fat/linux/aria2c"
+		
 		if [ ! -f "$aria2_path" ]; then
-			aria2_path="/media/fat/linux/aria2c"
 			
 			aria2_urls=(
 				"https://github.com/mrchrisster/0mhz-collection/blob/main/aria2c/aria2c.zip.001?raw=true"
