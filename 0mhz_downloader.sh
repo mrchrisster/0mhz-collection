@@ -37,7 +37,7 @@ dos_mgl="/media/fat/_DOS Games"
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
 prefer_mt32=false
 
-# Always download fresh copies of mgls to stay up to date. CAUTION: Deletes mgl folder and any custom mgls.
+# Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl=false
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
