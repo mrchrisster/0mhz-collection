@@ -17,7 +17,7 @@
 # Copyright 2024 mrchrisster
 
 # Update the script from ssh:
-# cd /media/fat/Scripts && curl -kLO https://raw.githubusercontent.com/mrchrisster/0mhz-collection/edit/main/0mhz_downloader.sh
+# cd /media/fat/Scripts && curl -kLO https://raw.githubusercontent.com/mrchrisster/0mhz-collection/main/0mhz_downloader.sh
 
 # NOTE: If this is the first time you install ao486, make sure you run update_all to install all necessary files for the core
 
