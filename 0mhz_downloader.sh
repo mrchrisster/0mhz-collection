@@ -97,6 +97,7 @@ auto_update() {
 			sed -i "s|^prefer_mt32=.*|prefer_mt32=\"$prefer_mt32\"|" $temp_script
 			sed -i "s|^always_dl_mgl=.*|always_dl_mgl=\"$always_dl_mgl\"|" $temp_script
 			sed -i "s|^download_manager=.*|download_manager=\"$download_manager\"|" $temp_script
+			sed -i "s|^include_addons=.*|include_addons=\"$include_addons\"|" $temp_script
 			sed -i "s|^base_dir=.*|base_dir=\"$base_dir\"|" $temp_script
 
 			# Make the temporary script executable
