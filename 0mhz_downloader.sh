@@ -29,7 +29,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -38,7 +38,7 @@ dos_mgl="/media/fat/_DOS Games"
 prefer_mt32=false
 
 # Also download unofficial 0mhz addons found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be over 100 games
-include_addons=false
+include_addons=true
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl=false
@@ -472,7 +472,7 @@ addons_download() {
 
 		check_and_download_zip() {
 			dl_zip="$1"
-			selected_zip=$(basename "$dl_zip" |python -c "import html, sys; print(html.unescape(sys.stdin.read()))")
+			selected_zip=$(basename "$dl_zip" |python -c "import sys; from urllib.parse import unquote; print(unquote(sys.stdin.read().strip()))")
 			# Proceed with download if a file has been selected
 			if [ ! -z "$addon_zip_dl" ]; then
 				mkdir -p "${base_dir}/.0mhz_downloader"
