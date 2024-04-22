@@ -74,6 +74,11 @@ gh_mgl_dir="$temp_dir/$mgls_dir_name"
 #### AUTO UPDATE
 
 auto_update() {
+	#Prevent update loop
+	if [[ "$(pwd)" == "/tmp" ]]; then
+		auto_update=false
+	fi
+
 	if [ "$auto_update" = true ]; then
 		# Define the GitHub URL where the raw script is available
 		script_url="https://raw.githubusercontent.com/mrchrisster/0mhz-collection/main/0mhz_downloader.sh"
