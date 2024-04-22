@@ -37,6 +37,9 @@ dos_mgl="/media/fat/_DOS Games"
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
 prefer_mt32=false
 
+# Also download unofficial 0mhz addons found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be over 100 games
+include_addons=false
+
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl=false
 
@@ -45,6 +48,11 @@ unresolved_mgls=true
 
 # Uses aria2c (compiled by wizzo) for downloading from archive which should increase download speeds a lot
 download_manager=true
+
+# Auto updates the script
+auto_update=true
+
+
 
 ###### CODE STARTS HERE
 
@@ -61,6 +69,47 @@ mgls_dir_name="0mhz-collection-main/mgls"
 gh_mgl_dir="$temp_dir/$mgls_dir_name"
 
 
+
+
+#### AUTO UPDATE
+
+auto_update() {
+	if [ "$auto_update" = true ]; then
+		# Define the GitHub URL where the raw script is available
+		script_url="https://raw.githubusercontent.com/mrchrisster/0mhz-collection/main/0mhz_downloader.sh"
+
+		# Temporary file to store the latest script
+		temp_script="/tmp/0mhz_downloader.sh"
+
+		# Fetch the latest version of the script
+		curl -kLs $script_url -o $temp_script
+
+		# Ensure the script is fetched and is not empty
+		if [ -s $temp_script ]; then
+			# Keep settings after update
+			sed -i "s|^games_loc=.*|games_loc=\"$games_loc\"|" $temp_script
+			sed -i "s|^dos_mgl=.*|dos_mgl=\"$dos_mgl\"|" $temp_script
+			sed -i "s|^prefer_mt32=.*|prefer_mt32=\"$prefer_mt32\"|" $temp_script
+			sed -i "s|^always_dl_mgl=.*|always_dl_mgl=\"$always_dl_mgl\"|" $temp_script
+			sed -i "s|^download_manager=.*|download_manager=\"$download_manager\"|" $temp_script
+			sed -i "s|^base_dir=.*|base_dir=\"$base_dir\"|" $temp_script
+
+			# Make the temporary script executable
+			chmod +x $temp_script
+
+			# Move the temporary script to overwrite the current script
+			cp $temp_script /media/fat/Scripts/0mhz_downloader.sh
+
+			echo "Update successful. Executing updated script..."
+			# Execute the new script
+			exec $temp_script
+			
+		else
+			echo "Failed to fetch the latest script version. Executing the current version."
+
+		fi
+	fi
+}
 
 #### PREP
 
@@ -345,7 +394,7 @@ zip_download() {
             dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
             mkdir -p "${base_dir}/.0mhz_downloader"
             if [ "$download_manager" = true ]; then
-            	/media/fat/linux/aria2c -x 16 --allow-overwrite=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
+            	/media/fat/linux/aria2c -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
 
             else
             	curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
@@ -355,7 +404,7 @@ zip_download() {
             if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
                 # Only unzip media folder
                 if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" "games/ao486/media/*" -d "$games_loc"; then
-                    echo "Unzipped $selected_zip successfully."
+                    echo "Unzipped $selected_zip successfully. Deleting zip."
                     rm "$base_dir/.0mhz_downloader/${selected_zip}"
                 else
                     echo "Error unzipping $selected_zip. Archive may be corrupt or not a valid zip file."
@@ -369,6 +418,85 @@ zip_download() {
     for mgl_file in "${mgl_with_missing_paths[@]}"; do
         check_and_download_zip "$mgl_file"
     done
+}
+
+addons_download() {
+	if [ "$include_addons" = true ]; then
+		declare -a addon_zip_dl
+		
+		echo "Checking archive.org for unofficial 0mhz addons..."
+		while read identifier; do
+		# Fetch XML file and extract zip names, process one identifier at a time
+		xml_output=$(curl -skL "https://archive.org/download/${identifier}/${identifier}_files.xml")
+		zip_names=$(echo "$xml_output" | xmllint --xpath '//file[contains(@name, ".zip")]/@name' - 2>/dev/null | sed 's/name="\([^"]*\)"/\1/g')
+
+			# Check if any zip names were found
+			if [ -n "$zip_names" ]; then
+			# Add each zip to the array
+				while read -r zip_name; do
+				encoded_file_name=$(echo "$zip_name" | tr -d '\n' | jq -sRr '@uri')
+				curl_output=$(curl -skL "https://archive.org/download/${identifier}/${encoded_file_name}/")
+				if [ $? -ne 0 ]; then
+					echo "Error accessing $new_url. Please check your internet connection or URL."
+					return 1
+				fi
+				if echo "$curl_output" | grep -q "games/"; then
+					mapfile -t file_paths < <(echo "$curl_output" | grep "AO486/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||')
+
+					# Check each file path
+					for file_path in "${file_paths[@]}"; do
+						full_path="${games_loc}/$file_path"
+						if [[ -f "$full_path" ]] && [[ "$full_path" == *"${games_loc}/games/AO486/media"* ]]; then
+							echo "File exists: $full_path"
+						else
+							echo "Will download: $full_path"
+							addon_zip_dl+=("https://archive.org/download/${identifier}/${encoded_file_name}")
+							break
+						fi
+					done
+
+				#else
+					#echo "Unexpected content received from $zip_name"
+				fi
+
+				done <<< "$zip_names"
+				
+			fi
+		done < <(curl -ks "https://archive.org/advancedsearch.php?q=0mhz&fl[]=identifier&sort[]=&rows=500&page=1&output=json" | jq -r '.response.docs[].identifier' | fgrep -- "-0mhz")
+
+		check_and_download_zip() {
+			dl_zip="$1"
+			selected_zip=$(basename "$dl_zip" |python -c "import html, sys; print(html.unescape(sys.stdin.read()))")
+			# Proceed with download if a file has been selected
+			if [ ! -z "$addon_zip_dl" ]; then
+				mkdir -p "${base_dir}/.0mhz_downloader"
+				if [ "$download_manager" = true ]; then
+					/media/fat/linux/aria2c -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
+
+				else
+					curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
+				fi
+				
+				# Verify the file was downloaded and is not empty
+				if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
+					# Only unzip media folder
+					if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" -d "$games_loc"; then
+						echo "Unzipped $selected_zip successfully. Deleting zip."
+						rm "$base_dir/.0mhz_downloader/${selected_zip}"
+					else
+						echo "Error unzipping $selected_zip. Archive may be corrupt or not a valid zip file."
+					fi
+				else
+					echo "Download failed or file is empty for $selected_zip. Skipping."
+				fi
+			fi
+		}
+
+		for addon_zip in "${addon_zip_dl[@]}"; do
+			check_and_download_zip "$addon_zip"
+		done
+	fi
+
 }
 
 
@@ -428,9 +556,11 @@ cleanup() {
 
 #####  MGL AWAY
 
+auto_update
 prep
 download_mgl_gh
 mgl_updater
 mgl_files_check
 zip_download
+addons_download
 cleanup
