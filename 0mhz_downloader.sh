@@ -47,7 +47,7 @@ always_dl_mgl=false
 unresolved_mgls=true
 
 # Uses aria2c (compiled by wizzo) for downloading from archive which should increase download speeds a lot
-download_manager=true
+download_manager=false
 
 # Auto updates the script
 auto_update=true
@@ -75,7 +75,7 @@ gh_mgl_dir="$temp_dir/$mgls_dir_name"
 
 auto_update() {
 	#Prevent update loop
-	if [[ "$(pwd)" == "/tmp" ]]; then
+	if [[ "$(dirname "$(realpath "$0")")" == "/tmp" ]]; then
 		auto_update=false
 	fi
 
@@ -397,8 +397,6 @@ zip_download() {
 
         # Proceed with download if a file has been selected
         if [ ! -z "$selected_zip" ]; then
-        	echo ""
-        	echo "Downloading: $selected_zip"
             dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
             mkdir -p "${base_dir}/.0mhz_downloader"
             if [ "$download_manager" = true ]; then
