@@ -44,14 +44,14 @@ include_unofficial_0mhz="false"
 always_dl_mgl="false"
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
-unresolved_mgls=true
+unresolved_mgls="true"
 
 # Uses aria2c (compiled by wizzo) for downloading from archive
 # If you live close to San Francisco (archive.org HQ), you might get faster speeds without the download manager.
 download_manager="true"
 
 # Auto updates the script
-auto_update=true
+auto_update="true"
 
 
 
