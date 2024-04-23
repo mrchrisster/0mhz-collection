@@ -29,7 +29,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -37,8 +37,8 @@ dos_mgl="/media/fat/_DOS Games"
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
 prefer_mt32=false
 
-# Also download unofficial 0mhz addons found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be over 100 games
-include_addons=true
+# Also download unofficial 0mhz games found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
+include_unofficial_0mhz=false
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl=false
@@ -50,7 +50,7 @@ unresolved_mgls=true
 download_manager=true
 
 # Auto updates the script
-auto_update=true
+auto_update=false
 
 
 
@@ -97,7 +97,7 @@ auto_update() {
 			sed -i "s|^prefer_mt32=.*|prefer_mt32=\"$prefer_mt32\"|" $temp_script
 			sed -i "s|^always_dl_mgl=.*|always_dl_mgl=\"$always_dl_mgl\"|" $temp_script
 			sed -i "s|^download_manager=.*|download_manager=\"$download_manager\"|" $temp_script
-			sed -i "s|^include_addons=.*|include_addons=\"$include_addons\"|" $temp_script
+			sed -i "s|^include_unofficial_0mhz=.*|include_unofficial_0mhz=\"$include_unofficial_0mhz\"|" $temp_script
 			sed -i "s|^base_dir=.*|base_dir=\"$base_dir\"|" $temp_script
 
 			# Make the temporary script executable
@@ -427,7 +427,7 @@ zip_download() {
 }
 
 addons_download() {
-	if [ "$include_addons" = true ]; then
+	if [ "$include_unofficial_0mhz" = true ]; then
 		declare -a addon_zip_dl
 		
 		echo "Checking archive.org for unofficial 0mhz addons..."
@@ -452,17 +452,16 @@ addons_download() {
 					# Check each file path
 					for file_path in "${file_paths[@]}"; do
 						full_path="${games_loc}/$file_path"
-						if [[ -f "$full_path" ]] && [[ "$full_path" == *"${games_loc}/games/AO486/media"* ]]; then
-							echo "File exists: $full_path"
-						else
-							echo "Will download: $full_path"
-							addon_zip_dl+=("https://archive.org/download/${identifier}/${encoded_file_name}")
-							break
+						if [[ "$file_path" == games/AO486/media* ]]; then
+							if [[ -f "$full_path" ]]; then
+								echo "File exists: $full_path"
+							else
+								echo "Will download: $full_path"
+								addon_zip_dl+=("https://archive.org/download/${identifier}/${encoded_file_name}")
+								break
+							fi
 						fi
 					done
-
-				#else
-					#echo "Unexpected content received from $zip_name"
 				fi
 
 				done <<< "$zip_names"
@@ -487,6 +486,10 @@ addons_download() {
 				if [ -s "${base_dir}/.0mhz_downloader/$selected_zip" ]; then
 					# Only unzip media folder
 					if unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" -d "$games_loc"; then
+						#Check that mgl is in right dir
+						if [[ $games_loc != /media/fat ]]; then
+							unzip -o "$base_dir/.0mhz_downloader/${selected_zip}" '*.mgl' -d /media/fat
+						fi
 						echo "Unzipped $selected_zip successfully. Deleting zip."
 						rm "$base_dir/.0mhz_downloader/${selected_zip}"
 					else
