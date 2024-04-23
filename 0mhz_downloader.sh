@@ -520,7 +520,7 @@ cleanup() {
 	
 	if [ "$unresolved_mgls" = true ]; then
 		echo ""
-		echo -n "Verifying .mgl files post-download..."
+		echo "Verifying .mgl files post-download..."
 	
 		for mgl_basename in "${mgl_with_missing_paths[@]}"; do
 			still_missing_any=false
