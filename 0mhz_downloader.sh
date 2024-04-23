@@ -35,19 +35,20 @@ games_loc="/media/fat"
 dos_mgl="/media/fat/_DOS Games"
 
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
-prefer_mt32=false
+prefer_mt32="false"
 
 # Also download unofficial 0mhz games found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
-include_unofficial_0mhz=false
+include_unofficial_0mhz="false"
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
-always_dl_mgl=false
+always_dl_mgl="false"
 
 # Deletes mgls that are not associated with files on archive. Set to false to disable automatic deletion
 unresolved_mgls=true
 
-# Uses aria2c (compiled by wizzo) for downloading from archive which should increase download speeds a lot
-download_manager=false
+# Uses aria2c (compiled by wizzo) for downloading from archive
+# If you live close to San Francisco (archive.org HQ), you might get faster speeds without the download manager.
+download_manager="true"
 
 # Auto updates the script
 auto_update=true
@@ -56,7 +57,7 @@ auto_update=true
 
 ###### CODE STARTS HERE
 
-base_dir="${games_loc}/games/AO486"
+base_dir="/media/fat/games/AO486"
 
 # archive.org URL of the 0mhz XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
@@ -274,6 +275,7 @@ mgl_files_check() {
 	if [ ${#mgl_with_missing_paths[@]} -eq 0 ]; then
 		echo ""
 		echo "All .mgl files match up with installed games."
+		echo ""
 	else
 		echo ""
 		echo "List of .mgl files with missing files:"
@@ -447,16 +449,17 @@ addons_download() {
 					return 1
 				fi
 				if echo "$curl_output" | grep -q "games/"; then
-					mapfile -t file_paths < <(echo "$curl_output" | grep "AO486/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||')
+					mapfile -t file_paths < <(echo "$curl_output" | grep -i "AO486/" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | sed 's|games/ao486/||')
+					mapfile -t mgl_path < <(echo "$curl_output" | grep -i ".mgl" | python -c "import html, sys; print(html.unescape(sys.stdin.read()))" | sed -n 's/.*">\(.*\)<\/a>.*/\1/p' | awk -F'/' '{print $NF}')
 
 					# Check each file path
 					for file_path in "${file_paths[@]}"; do
 						full_path="${games_loc}/$file_path"
 						if [[ "$file_path" == games/AO486/media* ]]; then
 							if [[ -f "$full_path" ]]; then
-								echo "File exists: $full_path"
+								echo "File exists: $file_path"
 							else
-								echo "Will download: $full_path"
+								echo "Will download: $mgl_path"
 								addon_zip_dl+=("https://archive.org/download/${identifier}/${encoded_file_name}")
 								break
 							fi
