@@ -50,7 +50,7 @@ unresolved_mgls=true
 download_manager=true
 
 # Auto updates the script
-auto_update=false
+auto_update=true
 
 
 
@@ -397,6 +397,8 @@ zip_download() {
 
         # Proceed with download if a file has been selected
         if [ ! -z "$selected_zip" ]; then
+        	echo ""
+        	echo "Downloading: $selected_zip"
             dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
             mkdir -p "${base_dir}/.0mhz_downloader"
             if [ "$download_manager" = true ]; then
@@ -474,6 +476,8 @@ addons_download() {
 			selected_zip=$(basename "$dl_zip" |python -c "import sys; from urllib.parse import unquote; print(unquote(sys.stdin.read().strip()))")
 			# Proceed with download if a file has been selected
 			if [ ! -z "$addon_zip_dl" ]; then
+			    echo ""
+        		echo "Downloading: $selected_zip"
 				mkdir -p "${base_dir}/.0mhz_downloader"
 				if [ "$download_manager" = true ]; then
 					/media/fat/linux/aria2c -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
