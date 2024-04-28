@@ -97,6 +97,7 @@ auto_update() {
 			sed -i "s|^dos_mgl=.*|dos_mgl=\"$dos_mgl\"|" $temp_script
 			sed -i "s|^prefer_mt32=.*|prefer_mt32=\"$prefer_mt32\"|" $temp_script
 			sed -i "s|^always_dl_mgl=.*|always_dl_mgl=\"$always_dl_mgl\"|" $temp_script
+   			sed -i "s|^unresolved_mgls=.*|unresolved_mgls=\"$unresolved_mgls\"|" $temp_script
 			sed -i "s|^download_manager=.*|download_manager=\"$download_manager\"|" $temp_script
 			sed -i "s|^include_unofficial_0mhz=.*|include_unofficial_0mhz=\"$include_unofficial_0mhz\"|" $temp_script
 			sed -i "s|^base_dir=.*|base_dir=\"$base_dir\"|" $temp_script
