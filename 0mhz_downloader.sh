@@ -57,7 +57,7 @@ auto_update="true"
 
 ###### CODE STARTS HERE
 
-base_dir="/media/fat/games/AO486"
+base_dir="${games_loc}/games/AO486"
 
 # archive.org URL of the 0mhz XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
