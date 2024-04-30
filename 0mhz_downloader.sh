@@ -403,7 +403,7 @@ zip_download() {
             dl_zip="$(echo https://archive.org/download/0mhz-dos/"$selected_zip" | sed 's/ /%20/g')"
             mkdir -p "${base_dir}/.0mhz_downloader"
             if [ "$download_manager" = true ]; then
-            	/media/fat/linux/aria2c -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
+            	/media/fat/linux/aria2c -s 16 -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
 
             else
             	curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
@@ -482,7 +482,7 @@ addons_download() {
         		echo "Downloading: $selected_zip"
 				mkdir -p "${base_dir}/.0mhz_downloader"
 				if [ "$download_manager" = true ]; then
-					/media/fat/linux/aria2c -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
+					/media/fat/linux/aria2c -s 16 -x 16 --file-allocation=none --summary-interval=0 --console-log-level=warn --download-result=hide --quiet=false  --allow-overwrite=true --always-resume=true --ca-certificate=/etc/ssl/certs/cacert.pem --dir="${base_dir}/.0mhz_downloader"  "$dl_zip"
 
 				else
 					curl --insecure -L -# -o "${base_dir}/.0mhz_downloader/$selected_zip" "$dl_zip"
