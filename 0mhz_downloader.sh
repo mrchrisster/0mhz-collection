@@ -29,7 +29,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/fat"
+games_loc="/media/usb0"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -37,8 +37,8 @@ dos_mgl="/media/fat/_DOS Games"
 # Prefer mt32 files. This will download all mgl files but if a MT-32 version exist, it will use that version.
 prefer_mt32="false"
 
-# Also download unofficial 0mhz games found on archive.org. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
-include_unofficial_0mhz="false"
+# Also download unofficial 0mhz games added by MiSTerTea. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
+include_unofficial_0mhz="true"
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl="false"
@@ -57,7 +57,7 @@ auto_update="true"
 
 ###### CODE STARTS HERE
 
-base_dir="${games_loc}/games/AO486"
+base_dir="/media/usb0/games/AO486"
 
 # archive.org URL of the 0mhz XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
@@ -471,7 +471,7 @@ addons_download() {
 				done <<< "$zip_names"
 				
 			fi
-		done < <(curl -ks "https://archive.org/advancedsearch.php?q=0mhz&fl[]=identifier&sort[]=&rows=500&page=1&output=json" | jq -r '.response.docs[].identifier' | fgrep -- "-0mhz")
+		done < <(curl -ks https://archive.org/services/users/@etalos/lists | jq -r '.value[] | select(.list_name == "0MHz DOS Collection Addons") | .members[] | .identifier')
 
 		check_and_download_zip() {
 			dl_zip="$1"
