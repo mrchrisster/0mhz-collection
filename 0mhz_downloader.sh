@@ -38,6 +38,7 @@ dos_mgl="/media/fat/_DOS Games"
 prefer_mt32="false"
 
 # Also download unofficial 0mhz games added by MiSTerTea. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
+# MiSTerTea's list: https://archive.org/details/@etalos/lists/1/0mhz-dos-collection-addons
 include_unofficial_0mhz="false"
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
