@@ -29,7 +29,7 @@
 
 
 # Where should the games be installed? Change accordingly if you want games to be stored on usb or cifs
-games_loc="/media/usb0"
+games_loc="/media/fat"
 
 # Path for mgl files. Should be on /media/fat drive.
 dos_mgl="/media/fat/_DOS Games"
@@ -38,7 +38,7 @@ dos_mgl="/media/fat/_DOS Games"
 prefer_mt32="false"
 
 # Also download unofficial 0mhz games added by MiSTerTea. CAUTION: Games might not work. Make sure you have enough space since it will be way over 100 extra games
-include_unofficial_0mhz="true"
+include_unofficial_0mhz="false"
 
 # Always download fresh copies of mgls to stay up to date. CAUTION: Deletes any custom mgls you may have created.
 always_dl_mgl="false"
@@ -57,7 +57,7 @@ auto_update="true"
 
 ###### CODE STARTS HERE
 
-base_dir="/media/usb0/games/AO486"
+base_dir="${games_loc}/games/AO486"
 
 # archive.org URL of the 0mhz XML file
 xml_url="https://archive.org/download/0mhz-dos/0mhz-dos_files.xml"
